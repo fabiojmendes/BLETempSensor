@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Cortex-M",
+            "includePath": [],
+            "defines": [],
+            "macFrameworkPath": [],
+            "compilerPath": "/opt/gcc-arm-none-eabi/current/bin/arm-none-eabi-gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-arm",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}
