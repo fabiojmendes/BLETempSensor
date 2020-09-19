@@ -18,6 +18,8 @@
 #define DEVICE_NAME CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
 
+#define DS1621_ADDRESS 0x48
+
 LOG_MODULE_REGISTER(main);
 
 uint8_t manuf_data[] = {0xff, 0xff, 0x00, 0x00, 0x00, 0x00};
@@ -61,36 +63,41 @@ static void bt_ready(int err) {
     return;
   }
 
-  uint8_t data[] = {0xAC, 0x02};
-  if (i2c_write(i2c_dev, data, sizeof(data), 0x48)) {
-    LOG_ERR("I2C write failed");
+  uint8_t data[] = {0xAC, 0x01};  // Sets to ONE-SHOT
+  if (i2c_write(i2c_dev, data, sizeof(data), DS1621_ADDRESS)) {
+    LOG_ERR("I2C write config failed");
     return;
   }
 
-  uint8_t data1 = 0xEE;
-  if (i2c_write(i2c_dev, &data1, sizeof(data1), 0x48)) {
-    LOG_ERR("I2C write failed");
-    return;
-  }
+  // Prints the stored config
+  // uint8_t d1 = 0xAC, d2 = 0;
+  // if (i2c_write_read(i2c_dev, DS1621_ADDRESS, &d1, sizeof(d1), &d2, sizeof(d2))) {
+  //   LOG_ERR("I2C write read failed");
+  //   return;
+  // }
+  // LOG_INF("I2C Config: %x", d2);
 
+  uint8_t counter = 0;
   while (true) {
+    uint8_t data1 = 0xEE;
+    if (i2c_write(i2c_dev, &data1, sizeof(data1), DS1621_ADDRESS)) {
+      LOG_ERR("I2C write failed");
+      return;
+    }
     k_sleep(K_MSEC(2000));
 
     data1 = 0xAA;
-    if (i2c_write(i2c_dev, &data1, sizeof(data1), 0x48)) {
-      LOG_ERR("I2C write failed");
-      return;
-    }
-
     uint8_t reading[2];
-    if (i2c_read(i2c_dev, reading, sizeof(reading), 0x48)) {
-      LOG_ERR("I2C write failed");
+    if (i2c_write_read(i2c_dev, DS1621_ADDRESS, &data1, sizeof(data1), reading, sizeof(reading))) {
+      LOG_ERR("I2C write read failed");
       return;
     }
 
-    LOG_INF("Temperature reading: %d,%d", reading[0], reading[1]);
+    uint16_t temperature = reading[0] * 10 + (reading[1] ? 5 : 0);
+    LOG_INF("Temperature: %d, reading: (%x,%x)", temperature, reading[0], reading[1]);
 
-    memcpy(&manuf_data[2], &reading, sizeof(reading));
+    memcpy(&manuf_data[2], &temperature, sizeof(temperature));
+    manuf_data[5] = counter++;
     err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
     if (err) {
       LOG_ERR("Advertising failed to update (err %d)", err);
