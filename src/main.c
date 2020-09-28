@@ -71,10 +71,10 @@ void main(void) {
   LOG_INF("Bluetooth initialized");
 
   /* Start advertising */
-  err = bt_le_adv_start(BT_LE_ADV_PARAM(0, BT_GAP_ADV_SLOW_INT_MIN,      //
-                                        BT_GAP_ADV_SLOW_INT_MAX, NULL),  //
-                        ad, ARRAY_SIZE(ad),                              //
-                        sd, ARRAY_SIZE(sd));                             //
+  err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, BT_GAP_ADV_SLOW_INT_MIN,  //
+                                        BT_GAP_ADV_SLOW_INT_MAX, NULL),                       //
+                        ad, ARRAY_SIZE(ad),                                                   //
+                        sd, ARRAY_SIZE(sd));                                                  //
   if (err) {
     LOG_ERR("Advertising failed to start (err %d)\n", err);
     return;
