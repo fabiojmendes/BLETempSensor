@@ -9,8 +9,6 @@
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <drivers/adc.h>
-#include <drivers/i2c.h>
-#include <drivers/sensor.h>
 #include <logging/log.h>
 #include <power/power.h>
 #include <stddef.h>
@@ -18,12 +16,17 @@
 #include <sys/util.h>
 #include <zephyr/types.h>
 
+#include "temp_sensor.h"
+
 #define DEVICE_NAME CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
 
 #define CONSOLE_LABEL DT_LABEL(DT_CHOSEN(zephyr_console))
 
 #define ADC_LABEL DT_LABEL(DT_NODELABEL(adc))
+
+#define ADV_INTERVAL_MIN 5000 * 0.625
+#define ADV_INTERVAL_MAX 5200 * 0.625
 
 LOG_MODULE_REGISTER(main);
 
@@ -71,10 +74,11 @@ void main(void) {
   LOG_INF("Bluetooth initialized");
 
   /* Start advertising */
-  err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, BT_GAP_ADV_SLOW_INT_MIN,  //
-                                        BT_GAP_ADV_SLOW_INT_MAX, NULL),                       //
-                        ad, ARRAY_SIZE(ad),                                                   //
-                        sd, ARRAY_SIZE(sd));                                                  //
+  err = bt_le_adv_start(BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY,  //
+                                        ADV_INTERVAL_MIN,            //
+                                        ADV_INTERVAL_MAX, NULL),     //
+                        ad, ARRAY_SIZE(ad),                          //
+                        sd, ARRAY_SIZE(sd));                         //
   if (err) {
     LOG_ERR("Advertising failed to start (err %d)\n", err);
     return;
@@ -82,17 +86,14 @@ void main(void) {
 
   LOG_INF("Beacon started");
 
-  const char *const devname = DT_LABEL(DT_INST(0, microchip_mcp9808));
-  const struct device *dev = device_get_binding(devname);
-
-  if (dev == NULL) {
-    LOG_ERR("Device %s not found.\n", devname);
-    return;
+  err = temp_sensor_init();
+  if (err) {
+    LOG_ERR("Error initializing temp sensor.");
   }
 
   const struct device *adc = device_get_binding(ADC_LABEL);
   if (adc == NULL) {
-    LOG_ERR("Device %s not found.\n", ADC_LABEL);
+    LOG_ERR("Device %s not found.", ADC_LABEL);
     return;
   }
 
@@ -111,19 +112,11 @@ void main(void) {
 
   uint8_t counter = 0;
   while (true) {
-    struct sensor_value temp;
-
-    int rc = sensor_sample_fetch(dev);
-    if (rc != 0) {
-      LOG_ERR("sensor_sample_fetch error: %d", rc);
+    int16_t temperaure = 0;
+    err = temp_sensor_read(&temperaure);
+    if (err) {
+      LOG_WRN("Error reading temperature");
     }
-
-    rc = sensor_channel_get(dev, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-    if (rc != 0) {
-      LOG_ERR("sensor_channel_get error: %d", rc);
-    }
-
-    int16_t temperaure = sensor_value_to_double(&temp) * 1000.0;
     LOG_INF("Temperature: %d", temperaure);
 
     uint16_t adc_buffer;
