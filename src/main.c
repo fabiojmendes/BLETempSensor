@@ -10,9 +10,7 @@
 #include <bluetooth/hci.h>
 #include <drivers/adc.h>
 #include <logging/log.h>
-#include <power/power.h>
 #include <stddef.h>
-#include <sys/printk.h>
 #include <sys/util.h>
 #include <zephyr/types.h>
 
@@ -20,8 +18,6 @@
 
 #define DEVICE_NAME CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
-
-#define CONSOLE_LABEL DT_LABEL(DT_CHOSEN(zephyr_console))
 
 #define ADC_LABEL DT_LABEL(DT_NODELABEL(adc))
 
@@ -50,17 +46,8 @@ static const struct bt_data sd[] = {
     BT_DATA(BT_DATA_MANUFACTURER_DATA, &manuf_data, sizeof(manuf_data)),
 };
 
-void sys_pm_notify_power_state_entry(enum power_states state) {  //
-  LOG_INF("Power state entered: %d", state);
-}
-
 void main(void) {
   int err;
-
-#ifdef CONFIG_BOARD_NRF52840DONGLE_NRF52840
-  const struct device *cons = device_get_binding(CONSOLE_LABEL);
-  device_set_power_state(cons, DEVICE_PM_LOW_POWER_STATE, NULL, NULL);
-#endif
 
   LOG_INF("Starting Beacon Demo");
 
