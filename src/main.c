@@ -20,8 +20,6 @@
 #define DEVICE_NAME CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
 
-#define ADC_LABEL DT_LABEL(DT_NODELABEL(adc))
-
 #define ADV_INTERVAL_MIN 5000 * 0.625
 #define ADV_INTERVAL_MAX 5200 * 0.625
 
@@ -37,28 +35,26 @@ struct manuf_data_t {
   uint8_t counter;
 };
 
-static struct manuf_data_t manuf_data = {.id = 0xFFFF, .reserved = 0x01};
+static struct manuf_data_t manuf_data = {
+    .id = 0xFFFF,     //
+    .reserved = 0x01  //
+};
 
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, BT_LE_AD_NO_BREDR),
 };
 
-// /* Set Scan Response data */
+// Set Scan Response data
 static const struct bt_data sd[] = {
     BT_DATA(BT_DATA_NAME_COMPLETE, DEVICE_NAME, DEVICE_NAME_LEN),
     BT_DATA(BT_DATA_MANUFACTURER_DATA, &manuf_data, sizeof(manuf_data)),
 };
 
-void main(void) {
-  int err;
-
-  LOG_INF("Starting Beacon Demo");
-
-  /* Initialize the Bluetooth Subsystem */
-  err = bt_enable(NULL);
+int init_bluetooth() {
+  int err = bt_enable(NULL);
   if (err) {
     LOG_ERR("Bluetooth init failed (err %d)", err);
-    return;
+    return -1;
   }
 
   LOG_INF("Bluetooth initialized");
@@ -71,10 +67,22 @@ void main(void) {
                         sd, ARRAY_SIZE(sd));                         //
   if (err) {
     LOG_ERR("Advertising failed to start (err %d)\n", err);
-    return;
+    return -1;
   }
+  LOG_INF("Bluetooth advertising...");
 
-  LOG_INF("Beacon started");
+  return 0;
+}
+
+void main(void) {
+  LOG_INF("Starting BLETempSensor");
+
+  /* Initialize the Bluetooth Subsystem */
+  int err = init_bluetooth();
+  if (err) {
+    LOG_ERR("Bluetooth failed to start (err %d)\n", err);
+    k_panic();
+  }
 
   err = temp_sensor_init();
   if (err) {
