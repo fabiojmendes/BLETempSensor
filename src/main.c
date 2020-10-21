@@ -15,6 +15,7 @@
 #include <zephyr/types.h>
 
 #include "temp_sensor.h"
+#include "voltage_sensor.h"
 
 #define DEVICE_NAME CONFIG_BT_DEVICE_NAME
 #define DEVICE_NAME_LEN (sizeof(DEVICE_NAME) - 1)
@@ -23,6 +24,8 @@
 
 #define ADV_INTERVAL_MIN 5000 * 0.625
 #define ADV_INTERVAL_MAX 5200 * 0.625
+
+#define NO_READING SHRT_MIN
 
 LOG_MODULE_REGISTER(main);
 
@@ -34,7 +37,7 @@ struct manuf_data_t {
   uint8_t counter;
 };
 
-static struct manuf_data_t manuf_data = {.id = 0xFFFF};
+static struct manuf_data_t manuf_data = {.id = 0xFFFF, .reserved = 0x01};
 
 static const struct bt_data ad[] = {
     BT_DATA_BYTES(BT_DATA_FLAGS, BT_LE_AD_NO_BREDR),
@@ -78,50 +81,25 @@ void main(void) {
     LOG_ERR("Error initializing temp sensor.");
   }
 
-  const struct device *adc = device_get_binding(ADC_LABEL);
-  if (adc == NULL) {
-    LOG_ERR("Device %s not found.", ADC_LABEL);
-    return;
-  }
-
-  struct adc_channel_cfg adc_config = {
-      .gain = ADC_GAIN_1_6,
-      .reference = ADC_REF_INTERNAL,
-      .acquisition_time = ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40),
-      .input_positive = SAADC_CH_PSELP_PSELP_VDD,
-  };
-
-  err = adc_channel_setup(adc, &adc_config);
+  err = volt_sensor_init();
   if (err) {
-    LOG_ERR("Error setting up ADC (%d)", err);
-    return;
+    LOG_ERR("Error initializing voltage sensor.");
   }
 
   uint8_t counter = 0;
+
   while (true) {
-    int16_t temperaure = 0;
+    int16_t temperaure = NO_READING;
     err = temp_sensor_read(&temperaure);
     if (err) {
       LOG_WRN("Error reading temperature");
     }
-    LOG_INF("Temperature: %d", temperaure);
 
-    uint16_t adc_buffer;
-
-    struct adc_sequence seq = {
-        .channels = BIT(0),
-        .buffer = &adc_buffer,
-        .buffer_size = sizeof(adc_buffer),
-        .calibrate = true,
-        .oversampling = 4,
-        .resolution = 14,
-    };
-    adc_read(adc, &seq);
-
-    int voltage = adc_buffer;
-    adc_raw_to_millivolts(adc_ref_internal(adc), ADC_GAIN_1_6, 14, &voltage);
-
-    LOG_INF("Voltage %d (raw: %d, reference: %d)", voltage, adc_buffer, adc_ref_internal(adc));
+    uint16_t voltage = NO_READING;
+    err = volt_sensor_read(&voltage);
+    if (err) {
+      LOG_WRN("Error reading voltage");
+    }
 
     manuf_data.temperature = temperaure;
     manuf_data.voltage = voltage;
