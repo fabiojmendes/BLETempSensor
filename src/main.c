@@ -31,13 +31,13 @@ struct manuf_data_t {
   uint16_t id;
   int16_t temperature;
   int16_t voltage;
-  uint8_t reserved;
+  uint8_t version;
   uint8_t counter;
 };
 
 static struct manuf_data_t manuf_data = {
-    .id = 0xFFFF,     //
-    .reserved = 0x01  //
+    .id = 0xFFFF,    //
+    .version = 0x01  //
 };
 
 static const struct bt_data ad[] = {
@@ -103,7 +103,7 @@ void main(void) {
       LOG_WRN("Error reading temperature");
     }
 
-    uint16_t voltage = NO_READING;
+    int16_t voltage = NO_READING;
     err = volt_sensor_read(&voltage);
     if (err) {
       LOG_WRN("Error reading voltage");
