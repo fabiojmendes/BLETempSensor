@@ -23,6 +23,7 @@
 #define ADV_INTERVAL_MIN 5000 * 0.625
 #define ADV_INTERVAL_MAX 5200 * 0.625
 
+#define DATA_VERSION 0x01
 #define NO_READING SHRT_MIN
 
 LOG_MODULE_REGISTER(main);
@@ -36,8 +37,10 @@ struct manuf_data_t {
 };
 
 static struct manuf_data_t manuf_data = {
-    .id = 0xFFFF,    //
-    .version = 0x01  //
+    .id = 0xFFFF,               //
+    .temperature = NO_READING,  //
+    .voltage = NO_READING,      //
+    .version = DATA_VERSION,    //
 };
 
 static const struct bt_data ad[] = {
