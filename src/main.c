@@ -120,6 +120,6 @@ void main(void) {
       LOG_ERR("Advertising failed to update (err %d)", err);
     }
 
-    k_sleep(K_SECONDS(10));
+    k_sleep(K_MSEC(CONFIG_APP_SAMPLE_RATE));
   }
 }

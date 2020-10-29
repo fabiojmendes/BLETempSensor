@@ -1,0 +1,7 @@
+mainmenu "BLETempSensor Configuration"
+
+config APP_SAMPLE_RATE
+	int "Sample rate for the thermometer and voltage"
+	default 10000
+
+source "Kconfig.zephyr"
